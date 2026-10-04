@@ -241,13 +241,14 @@ ul {
   flex-shrink: 0;
 }
 .logo__mark {
-  width: 42px;
-  height: 42px;
-  filter: drop-shadow(0 6px 12px rgba(196, 59, 240, 0.35));
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  box-shadow: 0 6px 16px rgba(196, 59, 240, 0.3);
   transition: transform 0.4s var(--ease);
 }
 .logo:hover .logo__mark {
-  transform: rotate(-8deg) scale(1.06);
+  transform: scale(1.06);
 }
 .logo__text {
   font-family: var(--display);
@@ -262,10 +263,15 @@ ul {
 .logo__dash {
   padding: 0 1px;
 }
-.logo--light .logo__text {
-  background: linear-gradient(135deg, #ffd1ea, #fff 50%, #e2d0ff);
-  -webkit-background-clip: text;
-  background-clip: text;
+.logo__badge {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.08), 0 18px 40px rgba(0, 0, 0, 0.35);
+  transition: transform 0.5s var(--ease);
+}
+.logo--badge:hover .logo__badge {
+  transform: rotate(-4deg) scale(1.03);
 }
 
 /* ==========  Header  ========== */
@@ -2103,11 +2109,15 @@ ul {
     display: none;
   }
   .logo__mark {
-    width: 36px;
-    height: 36px;
+    width: 46px;
+    height: 46px;
   }
   .logo__text {
     font-size: 1.35rem;
+  }
+  .logo__badge {
+    width: 120px;
+    height: 120px;
   }
   .icon-btn {
     width: 40px;

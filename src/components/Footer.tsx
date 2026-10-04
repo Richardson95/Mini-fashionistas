@@ -12,7 +12,7 @@ export default function Footer() {
     <footer className="footer">
       <div className="container footer__grid">
         <div className="footer__brand">
-          <Logo light />
+          <Logo badge />
           <p>Joyful style for ages 4–12.</p>
           <div className="socials">
             {(['ig', 'fb', 'tt', 'yt'] as const).map((s) => (
