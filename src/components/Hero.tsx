@@ -82,7 +82,7 @@ const slides: Slide[] = [
   },
 ];
 
-const DELAY = 6000;
+const DELAY = 4000;
 
 interface Props {
   onShop: (category?: Category) => void;
