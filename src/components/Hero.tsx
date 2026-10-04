@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { Category } from '../types';
-import { ArrowIcon } from './Icons';
+import { ArrowIcon, PauseIcon, PlayIcon } from './Icons';
 
 interface Slide {
   eyebrow: string;
@@ -88,26 +88,107 @@ interface Props {
   onShop: (category?: Category) => void;
 }
 
+function SlideView({ s, i, live, onShop }: { s: Slide; i: number; live: boolean; onShop: Props['onShop'] }) {
+  const Title = i === 0 && live ? 'h1' : 'h2';
+  const tab = live ? 0 : -1;
+  return (
+    <div className="slide__inner container">
+      <div className="hero__copy">
+        <span className="eyebrow">{s.eyebrow}</span>
+        <Title className="hero__title">
+          {s.title}
+          <br />
+          <span className="grad-text">{s.accent}</span>
+        </Title>
+        <p>{s.text}</p>
+        <div className="hero__cta">
+          <button className="btn btn--lg" tabIndex={tab} onClick={() => onShop(s.category)}>
+            {s.cta} <ArrowIcon width={18} height={18} />
+          </button>
+          <a href="#ages" className="btn btn--ghost btn--lg" tabIndex={tab}>
+            Shop by Age
+          </a>
+        </div>
+      </div>
+
+      <div className="hero__art" aria-hidden="true">
+        <div className="hero__circle">
+          <div className="hero__photo">
+            <img
+              className="hero__main"
+              src={s.image}
+              alt=""
+              style={{ objectPosition: s.focus }}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              fetchPriority={i === 0 ? 'high' : 'auto'}
+            />
+          </div>
+        </div>
+        {s.cards.map((c, n) => (
+          <div key={c.title} className={`float-card fc${n + 1}`}>
+            <img src={c.img} alt="" loading="lazy" />
+            <div>
+              <b>{c.title}</b>
+              <small>{c.sub}</small>
+            </div>
+          </div>
+        ))}
+        <div className="float-card fc3">
+          <span className="fc3__badge">{s.badge.value}</span>
+          <div>
+            <b>{s.badge.title}</b>
+            <small>{s.badge.sub}</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Hero({ onShop }: Props) {
-  const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const touchX = useRef<number | null>(null);
   const count = slides.length;
+  // pos runs 0..count; position `count` is a copy of slide 1 so the track can
+  // keep sliding forward, then silently snap back to the real slide 1.
+  const [pos, setPos] = useState(0);
+  const [animate, setAnimate] = useState(true);
+  const [playing, setPlaying] = useState(true);
+  const touchX = useRef<number | null>(null);
+  const active = pos % count;
 
-  const go = useCallback((i: number) => setIndex(((i % count) + count) % count), [count]);
-  const next = useCallback(() => go(index + 1), [go, index]);
-  const prev = useCallback(() => go(index - 1), [go, index]);
+  const next = useCallback(() => {
+    setAnimate(true);
+    setPos((p) => Math.min(p + 1, count));
+  }, [count]);
 
-  // The active dot's fill animation doubles as the autoplay timer, so pausing
-  // (hover, focus, hidden tab) freezes the progress bar and the timer together.
-  const [autoplay, setAutoplay] = useState(true);
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const sync = () => setAutoplay(!mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
+  const prev = useCallback(() => {
+    if (pos === 0) {
+      // jump to the copy without animating, then slide back one
+      setAnimate(false);
+      setPos(count);
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          setAnimate(true);
+          setPos(count - 1);
+        }),
+      );
+    } else {
+      setAnimate(true);
+      setPos((p) => p - 1);
+    }
+  }, [pos, count]);
+
+  const goTo = (i: number) => {
+    setAnimate(true);
+    setPos(i);
+  };
+
+  const onTrackEnd = (e: React.TransitionEvent) => {
+    if (e.target !== e.currentTarget) return;
+    if (pos === count) {
+      setAnimate(false);
+      setPos(0);
+    }
+  };
 
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowRight') next();
@@ -127,17 +208,13 @@ export default function Hero({ onShop }: Props) {
       id="top"
       aria-roledescription="carousel"
       aria-label="Featured"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}
       onKeyDown={onKey}
       onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
       onTouchEnd={onTouchEnd}
     >
       <div className="hero__bg" aria-hidden="true">
         {slides.map((s, i) => (
-          <span key={i} className={`hero__wash ${i === index ? 'is-active' : ''}`} style={{ '--wash': s.bg } as React.CSSProperties} />
+          <span key={i} className={`hero__wash ${i === active ? 'is-active' : ''}`} style={{ '--wash': s.bg } as React.CSSProperties} />
         ))}
         <span className="blob blob--1" />
         <span className="blob blob--2" />
@@ -146,69 +223,29 @@ export default function Hero({ onShop }: Props) {
         <span className="sparkle s3">✧</span>
       </div>
 
-      <div className="container hero__stage">
-        {slides.map((s, i) => {
-          const Title = i === 0 ? 'h1' : 'h2';
-          return (
-          <div
-            key={i}
-            className={`slide ${i === index ? 'is-active' : ''}`}
-            role="group"
-            aria-roledescription="slide"
-            aria-label={`${i + 1} of ${count}`}
-            aria-hidden={i !== index}
-          >
-            <div className="hero__copy">
-              <span className="eyebrow">{s.eyebrow}</span>
-              <Title className="hero__title">
-                {s.title}
-                <br />
-                <span className="grad-text">{s.accent}</span>
-              </Title>
-              <p>{s.text}</p>
-              <div className="hero__cta">
-                <button className="btn btn--lg" tabIndex={i === index ? 0 : -1} onClick={() => onShop(s.category)}>
-                  {s.cta} <ArrowIcon width={18} height={18} />
-                </button>
-                <a href="#ages" className="btn btn--ghost btn--lg" tabIndex={i === index ? 0 : -1}>
-                  Shop by Age
-                </a>
-              </div>
+      <div className="hero__viewport">
+        <div
+          className={`hero__track ${animate ? 'is-animating' : ''}`}
+          style={{ transform: `translate3d(${-pos * 100}%, 0, 0)` }}
+          onTransitionEnd={onTrackEnd}
+          aria-live={playing ? 'off' : 'polite'}
+        >
+          {slides.map((s, i) => (
+            <div
+              key={i}
+              className="slide"
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${i + 1} of ${count}`}
+              aria-hidden={i !== active}
+            >
+              <SlideView s={s} i={i} live={i === active} onShop={onShop} />
             </div>
-
-            <div className="hero__art" aria-hidden="true">
-              <div className="hero__circle">
-                <div className="hero__photo">
-                  <img
-                    className="hero__main"
-                    src={s.image}
-                    alt=""
-                    style={{ objectPosition: s.focus }}
-                    loading={i === 0 ? 'eager' : 'lazy'}
-                    fetchPriority={i === 0 ? 'high' : 'auto'}
-                  />
-                </div>
-              </div>
-              {s.cards.map((c, n) => (
-                <div key={c.title} className={`float-card fc${n + 1}`}>
-                  <img src={c.img} alt="" loading="lazy" />
-                  <div>
-                    <b>{c.title}</b>
-                    <small>{c.sub}</small>
-                  </div>
-                </div>
-              ))}
-              <div className="float-card fc3">
-                <span className="fc3__badge">{s.badge.value}</span>
-                <div>
-                  <b>{s.badge.title}</b>
-                  <small>{s.badge.sub}</small>
-                </div>
-              </div>
-            </div>
+          ))}
+          <div className="slide" aria-hidden="true">
+            <SlideView s={slides[0]} i={-1} live={false} onShop={onShop} />
           </div>
-          );
-        })}
+        </div>
       </div>
 
       <div className="container hero__controls">
@@ -225,24 +262,31 @@ export default function Hero({ onShop }: Props) {
             <button
               key={i}
               role="tab"
-              aria-selected={i === index}
+              aria-selected={i === active}
               aria-label={`Slide ${i + 1}: ${s.eyebrow}`}
-              className={`hero__dot ${i === index ? 'is-active' : ''}`}
-              onClick={() => go(i)}
+              className={`hero__dot ${i === active ? 'is-active' : ''}`}
+              onClick={() => goTo(i)}
             >
-              {i === index && autoplay && (
+              {i === active && (
+                // This fill is the autoplay clock: when it finishes, advance.
                 <span
-                  key={index}
                   className="hero__dot-fill"
-                  style={{ animationDuration: `${DELAY}ms`, animationPlayState: paused ? 'paused' : 'running' }}
+                  style={{ '--delay': `${DELAY}ms`, animationPlayState: playing ? 'running' : 'paused' } as React.CSSProperties}
                   onAnimationEnd={next}
                 />
               )}
             </button>
           ))}
         </div>
+        <button
+          className="hero__arrow hero__play"
+          aria-label={playing ? 'Pause slideshow' : 'Play slideshow'}
+          onClick={() => setPlaying((p) => !p)}
+        >
+          {playing ? <PauseIcon width={16} height={16} /> : <PlayIcon width={16} height={16} />}
+        </button>
         <span className="hero__count">
-          <b>{String(index + 1).padStart(2, '0')}</b> / {String(count).padStart(2, '0')}
+          <b>{String(active + 1).padStart(2, '0')}</b> / {String(count).padStart(2, '0')}
         </span>
       </div>
     </section>

@@ -154,3 +154,15 @@ export const CheckIcon = (p: P) => (
     <path d="M5 12.5l4.5 4.5L19 7.5" />
   </svg>
 );
+
+export const PauseIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M9 5v14M15 5v14" />
+  </svg>
+);
+
+export const PlayIcon = (p: P) => (
+  <svg {...base} fill="currentColor" {...p}>
+    <path d="M8 5.5v13l10-6.5z" />
+  </svg>
+);
