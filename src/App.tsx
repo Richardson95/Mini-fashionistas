@@ -24,7 +24,12 @@ export default function App() {
     <StoreProvider>
       <Header search={search} onSearch={setSearch} />
       <main>
-        <Hero />
+        <Hero
+          onShop={(category) => {
+            setFilters({ category: category ?? 'All', age: 'All' });
+            scrollToShop();
+          }}
+        />
         <Perks />
         <ShopByAge
           onPick={(age) => {
